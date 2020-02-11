@@ -1,41 +1,65 @@
-FROM osrf/ros:kinetic-desktop-full
-# FROM ros:kinetic-ros-base
+FROM nvidia/opengl:1.1-glvnd-runtime-ubuntu16.04
 
-SHELL ["/bin/bash", "-c"]
+# サーバを日本に変更
+RUN sed -i.org -e 's|ports.ubuntu.com|jp.archive.ubuntu.com|g' /etc/apt/sources.list
+
+# インストールに必要なツールをインストール
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    lsb-release wget
+
+# ROSのリポジトリを追加
+RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu xenial main" > /etc/apt/sources.list.d/ros-latest.list'
+RUN apt-key adv --keyserver 'hkp://ha.pool.sks-keyservers.net:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
 
 # gazebo7のリポジトリ追加．新しいやつを入れるため．
-RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'; \
-  apt-get update && apt-get install -y wget; wget http://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
+RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+RUN wget http://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
+
 
 # 環境構築インストール
-RUN apt-get update && apt-get install --no-install-recommends -y \
-  ros-kinetic-turtlebot3-* iputils-ping net-tools gnome-terminal libcanberra-gtk-module libcanberra-gtk3-module dbus-x11 gazebo7\
-  && rm -rf /var/lib/apt/lists/*
+RUN apt-get update
+RUN apt-get install --no-install-recommends -y ros-kinetic-desktop-full
+RUN apt-get install --no-install-recommends -y ros-kinetic-turtlebot3-*
+RUN apt-get install --no-install-recommends -y iputils-ping
+RUN apt-get install --no-install-recommends -y net-tools
+RUN apt-get install --no-install-recommends -y gnome-terminal
+RUN apt-get install --no-install-recommends -y libcanberra-gtk-module
+RUN apt-get install --no-install-recommends -y libcanberra-gtk3-module
+RUN apt-get install --no-install-recommends -y dbus-x11
+RUN apt-get install --no-install-recommends -y gazebo7
+RUN apt-get install --no-install-recommends -y nano
+RUN apt-get install --no-install-recommends -y python-rosdep
+RUN apt-get install --no-install-recommends -y python-rosinstall-generator
+RUN apt-get install --no-install-recommends -y python-wstool
+RUN apt-get install --no-install-recommends -y python-rosinstall
+RUN apt-get install --no-install-recommends -y build-essential
 
 # burger_war関連のインストール
-RUN apt-get update && apt-get install --no-install-recommends -y \
-  python-pip ros-kinetic-turtlebot3 ros-kinetic-turtlebot3-msgs ros-kinetic-turtlebot3-simulations ros-kinetic-aruco-ros
-RUN pip install requests flask
+RUN apt-get install --no-install-recommends -y python-pip
+RUN apt-get install --no-install-recommends -y ros-kinetic-turtlebot3
+RUN apt-get install --no-install-recommends -y ros-kinetic-turtlebot3-msgs
+RUN apt-get install --no-install-recommends -y ros-kinetic-turtlebot3-simulations
+RUN apt-get install --no-install-recommends -y ros-kinetic-aruco-ros
+RUN pip install requests
+RUN pip install flask
 
-# burger_warパッケージのセットアップ
-RUN source /opt/ros/kinetic/setup.bash
-RUN mkdir -p ~/catkin_ws_burger/src
-RUN source /opt/ros/kinetic/setup.bash; cd ~/catkin_ws_burger/src;catkin_init_workspace
-RUN source /opt/ros/kinetic/setup.bash; cd ~/catkin_ws_burger;catkin_make
-RUN cd ~/catkin_ws_burger/src; git clone https://github.com/OneNightROBOCON/burger_war
+# aptキャッシュの削除
+RUN apt-get clean; rm -rf /var/lib/apt/lists/*
 
-# nvidia-docker hooks
-# LABEL com.nvidia.volumes.needed="nvidia_driver"
-# ENV PATH /usr/local/nvidia/bin:${PATH}
-# ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
 
 # .bashrcへの変数追記
-RUN echo "export ROS_MASTER_URI=http://172.17.0.1:11311" >> ~/.bashrc
+# RUN echo "export ROS_MASTER_URI=http://172.17.0.1:11311" >> ~/.bashrc
+RUN echo "alias sb='source ~/.bashrc'" >> ~/.bashrc
 RUN echo "export ROS_IP=\`ifconfig | grep inet | head -1 | cut -d ':' -f 2 | cut -d' ' -f 1\`" >> ~/.bashrc
-RUN echo "export GAZEBO_MODEL_PATH=$HOME/catkin_ws_burger/src/burger_war/burger_war/models/" >> ~/.bashrc
-RUN echo "source ~/catkin_ws_burger/devel/setup.bash" >> ~/.bashrc
-# RUN echo "export ROS_MASTER_URI=http://172.17.0.1:11311"
-# RUN echo "export ROS_IP=`ifconfig | grep inet | head -1 | cut -d ':' -f 2 | cut -d' ' -f 1`" >> ~/.bashrc
-# RUN echo "source ~/catkin_ws_burger/devel/setup.bash" >> ~/.bashrc
-# RUN echo "export GAZEBO_MODEL_PATH=$HOME/catkin_ws_burger/src/burger_war/burger_war/models/" >> ~/.bashrc
-# CMD [ "gazebo" ]
+RUN echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
+RUN echo 'ln -s $ROS_WS /root/' >> ~/.profile
+RUN echo 'source $ROS_WS/devel/setup.bash' >> ~/.bashrc
+# RUN echo "source /root/catkin_ws/devel/setup.bash" >> ~/.bashrc
+
+# nvidia-container-runtime
+ENV NVIDIA_VISIBLE_DEVICES \
+    ${NVIDIA_VISIBLE_DEVICES:-all}
+ENV NVIDIA_DRIVER_CAPABILITIES \
+    ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
