@@ -1,4 +1,4 @@
 #! /bin/bash
 
 cd `dirname $0`
-docker build -t buger_war .
+docker build -t ros_kinetic_gpu .
