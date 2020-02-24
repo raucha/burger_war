@@ -1,14 +1,10 @@
 #!/bin/bash
 
-# if docker ps --format '{{.Names}}' | grep -q burger_war_container; then
-#     cmd="exec"
-# else
-#     cmd="run"
-# fi
-docker rm burger_war_container
+command=$1
 
 xhost +local:root
 
+# docker run -it \
 docker run -it \
 --gpus all \
 --env="DISPLAY"  \
@@ -29,7 +25,6 @@ docker run -it \
 -e LOCAL_USER_ID=`id -u $USER` \
 -e LOCAL_GROUP_ID=`id -g $USER` \
 -e LOCAL_GROUP_NAME=`id -gn $USER` \
---name burger_war_container \
- ros_kinetic_gpu bash -i -c 'cd $ROS_WS/src/burger_war; bash scripts/sim_with_judge.sh'
+ ros_kinetic_gpu bash -i -c 'cd $ROS_WS/src/burger_war;'"$command"
 
 xhost -local:root
