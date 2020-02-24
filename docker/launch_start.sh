@@ -22,6 +22,6 @@ docker run -it \
 -e LOCAL_USER_ID=`id -u $USER` \
 -e LOCAL_GROUP_ID=`id -g $USER` \
 -e LOCAL_GROUP_NAME=`id -gn $USER` \
- ros_kinetic_gpu bash -i -c 'roslaunch burger_war setup_sim.launch'
+ ros_kinetic_gpu bash -i -c 'cd $ROS_WS/src/burger_war; bash scripts/start.sh'
 
 xhost -local:root

@@ -1,5 +1,5 @@
-
 #!/bin/bash
+
 xhost +local:root
 
 # docker run -it \

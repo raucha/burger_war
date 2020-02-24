@@ -1,3 +1,22 @@
+# burger_warのDocker環境
+
+## 環境構築
+
+nvidiaドライバ, docker, nvidia-docker2のインストール
+
+## Dockerイメージのビルド
+
+```bash
+bash $HOME/catkin_ws/src/burger_war/docker/docker_build.sh
+```
+
+## Dockerイメージの起動
+
+```bash
+bash $HOME/catkin_ws/src/burger_war/docker/launch_bash.sh
+```
+
+<!--
 # ROS Kinetic + Gazebo on Docker HOWTO
 
 This tutorial is focused on those people that have Ubuntu 14.04 + ROS Indigo and they want to run Gazebo 7 or later.
@@ -19,7 +38,7 @@ Install nvidia-docker (to get HW acceleration) https://github.com/NVIDIA/nvidia-
 
 This repository contain the Dockerfile. Move into the directory containing the file and type
 
-The command below will **create** the container from the base image if it doesn't exist and log you in. 
+The command below will **create** the container from the base image if it doesn't exist and log you in.
 
     docker build -t ros-kinetic-gazebo7 .
 
@@ -34,4 +53,4 @@ To make it easier, I created the launcher **launch_docker.sh** (you might need t
 * http://wiki.ros.org/docker/Tutorials/Docker
 * http://wiki.ros.org/docker/Tutorials/Hardware%20Acceleration
 * http://wiki.ros.org/docker/Tutorials/GUI
-
+ -->
