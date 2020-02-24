@@ -3,6 +3,7 @@
 import rospy
 import random
 import rosparam
+import tf
 
 from geometry_msgs.msg import Twist
 import actionlib # RESPECT @seigot
@@ -19,12 +20,13 @@ class RandomBot():
         # bot name
         self.name = bot_name
         # velocity publisher
-        self.vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1)
+        # self.vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1)
 
-        self.my_color = rosparam.get_param('rside')
+        self.my_color = rospy.get_param('~rside')
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction) # RESPECT @seigot]
 
-    def ssetGoal(self,x,y,yaw):
+
+    def setGoal(self,x,y,yaw):
         # RESPECT @seigot
         self.client.wait_for_server()
         #print('setGoal x=', x, 'y=', y, 'yaw=', yaw)
@@ -37,51 +39,28 @@ class RandomBot():
         goal.target_pose.pose.position.x = x
         goal.target_pose.pose.position.y = y
 
+        # Euler to Quartanion
+        q=tf.transformations.quaternion_from_euler(0,0,yaw)
+        goal.target_pose.pose.orientation.x = q[0]
+        goal.target_pose.pose.orientation.y = q[1]
+        goal.target_pose.pose.orientation.z = q[2]
+        goal.target_pose.pose.orientation.w = q[3]
+
         ret = self.client.send_goal_and_wait(goal, execute_timeout=rospy.Duration(4))
-        rospy.loginfo(ret)
-        return ret
+        return ("PENDING" ,"ACTIVE" ,"RECALLED" ,"REJECTED" ,"PREEMPTED" ,"ABORTED" ,"SUCCEEDED" ,"LOST")[ret]
 
 
-    def calcTwist(self):
-        value = random.randint(1,1000)
-        if value < 250:
-            x = 0.2
-            th = 0
-        elif value < 500:
-            x = -0.2
-            th = 0
-        elif value < 750:
-            x = 0
-            th = 1
-        elif value < 1000:
-            x = 0
-            th = -1
-        else:
-            x = 0
-            th = 0
-        twist = Twist()
-        twist.linear.x = x; twist.linear.y = 0; twist.linear.z = 0
-        twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = th
-        return twist
-
-    def main(self):
-        r = rospy.Rate(1) # change speed 1fps
-
-        target_speed = 0
-        target_turn = 0
-        control_speed = 0
-        control_turn = 0
+    def strategy(self):
+        r = rospy.Rate(10) # change speed 1fps
 
         while not rospy.is_shutdown():
-            twist = self.calcTwist()
-            print(twist)
-            self.vel_pub.publish(twist)
-
+            state = self.setGoal(-0.5, 0, 0)
+            rospy.loginfo(state)
             r.sleep()
 
 
 if __name__ == '__main__':
     rospy.init_node('my_run')
     bot = RandomBot('myRun')
-    bot.main()
+    bot.strategy()
 
