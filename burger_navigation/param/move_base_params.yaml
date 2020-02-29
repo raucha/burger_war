@@ -17,3 +17,4 @@ recovery_behaviors:
 
 aggressive_reset:
     reset_distance: 0.05
+    layer_names: ["obstacle_layer"]
