@@ -43,6 +43,7 @@ RUN apt-get install --no-install-recommends -y ros-kinetic-aruco-ros
 RUN pip install requests
 RUN pip install flask
 RUN apt-get install --no-install-recommends -y ros-kinetic-dwa-local-planner
+RUN apt-get install --no-install-recommends -y libarmadillo-dev libarmadillo6
 
 # aptキャッシュの削除
 RUN apt-get clean; rm -rf /var/lib/apt/lists/*
