@@ -11,6 +11,7 @@ from geometry_msgs.msg import Twist, TransformStamped
 from actionlib import SimpleActionClient, GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal  # RESPECT @seigot
 import actionlib
+from visualization_msgs.msg import Marker
 
 #from std_msgs.msg import String
 #from sensor_msgs.msg import Image
@@ -70,6 +71,8 @@ class RandomBot():
         self.my_color = rospy.get_param('~rside')
 
         self.vel_pub = rospy.Publisher('cmd_vel', Twist,queue_size=1)
+        self.detect_inner_pub = rospy.Publisher('detect_inner_th', Marker,queue_size=1)
+        self.detect_outer_pub = rospy.Publisher('detect_outer_th', Marker,queue_size=1)
         self.tfBuffer = tf2_ros.Buffer()
         _ = tf2_ros.TransformListener(self.tfBuffer)
         self.client = actionlib.SimpleActionClient(
@@ -98,24 +101,21 @@ class RandomBot():
         goal.target_pose.pose.orientation.z = q[2]
         goal.target_pose.pose.orientation.w = q[3]
 
-
         def active_cb():
-            pass
             # rospy.loginfo("active_cb. Goal pose is now being processed by the Action Server...")
+            return
 
         def feedback_cb( feedback):
-            pass
             #To print current pose at each feedback:
             #rospy.loginfo("Feedback for goal "+str(self.goal_cnt)+": "+str(feedback))
             # rospy.loginfo("feedback_cb. Feedback for goal pose received{}".format(feedback))
+            return
 
-        # def done_cb(result):
         def done_cb(status, result):
             if status is not GoalStatus.PREEMPTED:
                 self.goalcounter += 1
                 self.goalcounter %= 20
             rospy.loginfo("done_cb. status:{} result:{}".format(num2mvstate(status), result))
-
 
         self.client.send_goal(goal, done_cb=done_cb, active_cb=active_cb, feedback_cb=feedback_cb)
         return
@@ -125,45 +125,35 @@ class RandomBot():
     def strategy(self):
         r = rospy.Rate(10)  # change speed 1fps
 
-        # self.setGoal(
-        #     self.goals[0][0], self.goals[0][1], self.goals[0][2])
-        # print "begin"
         self.setGoal(
             self.goals[0][0], self.goals[0][1], self.goals[0][2])
-        # print "end"
 
         is_patrol_mode_prev = False
         is_patrol_mode = True
 
         while not rospy.is_shutdown():
             r.sleep()
-            # self.client.wait_for_result()
-            # value = rospy.get_time()
             # rospy.loginfo("is_patrol_mode:{}".format(is_patrol_mode) )
 
             is_enemy_detected, enemy_dist, enemy_rad = self.getEnemyDistRad()
-            # rospy.loginfo("enemy_dist:{}  enemy_rad:{}".format(enemy_dist, enemy_rad) )
-            
             # rospy.loginfo("is_enemy_detected:{} enemy_dist{} enemy_rad:{}".format(is_enemy_detected, enemy_dist, enemy_rad))
             is_patrol_mode = True
+            detect_inner_th = 0.6
+            detect_outer_th = 0.7
             if not is_enemy_detected:
                 is_patrol_mode = True
-            elif is_patrol_mode and  0.6 > enemy_dist:
+            elif is_patrol_mode and  detect_inner_th > enemy_dist:
                 is_patrol_mode = False
-            elif not is_patrol_mode and 0.7 < enemy_dist:
+            elif not is_patrol_mode and detect_outer_th < enemy_dist:
                 is_patrol_mode = True
+            self.pubDetectRange(detect_inner_th, detect_outer_th)
 
             if is_patrol_mode and (not is_patrol_mode_prev or (self.goalcounter is not self.goalcounter_prev)):
-            # if is_patrol_mode is True:
-                # 巡回モードに切り替わった時、及びゴール座標が変わった時だけ
-                # if self.client.get_state() is not GoalStatus.PENDING: 
+                # 新たに巡回モードに切り替わった瞬間及びゴール座標が変わった時
+                # goalcounterのゴール座標をセット
                 self.setGoal(self.goals[self.goalcounter][0], self.goals[self.goalcounter][1], self.goals[self.goalcounter][2])
                 rospy.loginfo( num2mvstate(self.client.get_state()))
                 self.goalcounter_prev = self.goalcounter
-                # if self.client.get_state() not in (GoalStatus.ACTIVE, GoalStatus.PENDING) :
-                # # if self.client.get_state() == GoalStatus.SUCCEEDED or self.client.get_state() == GoalStatus.RECALLED:
-                #     self.goalcounter += 1
-                #     self.goalcounter %= 20
             elif is_patrol_mode:
                 # 巡回モード最中。CBが来るまで何もしない。
                 pass
@@ -197,6 +187,41 @@ class RandomBot():
         # rad = tf.transformations.euler_from_quaternion([rot.x, rot.y, rot.z, rot.w])[2]
 
         return True, dist, rad
+    
+    def pubDetectRange(self, inner, outer):
+        marker = Marker()
+        marker.header.frame_id = "/base_link"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "basic_shapes"
+        marker.type = Marker.CYLINDER
+        marker.pose.position.x = 0.0
+        marker.pose.position.y = 0.0
+        marker.pose.position.z = 0.0
+        marker.pose.orientation.x = 0.0
+        marker.pose.orientation.y = 0.0
+        marker.pose.orientation.z = 0.0
+        marker.pose.orientation.w = 1.0
+
+        marker.scale.x = inner * 2
+        marker.scale.y = inner * 2
+        marker.scale.z = 0.3
+        marker.id = 0
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 0.0
+        marker.color.a = 0.3
+        self.detect_inner_pub.publish(marker)
+
+        marker.scale.x = outer * 2
+        marker.scale.y = outer * 2
+        marker.scale.z = 0.2
+        marker.id = 1
+        marker.color.r = 0.0
+        marker.color.g = 1.0
+        marker.color.b = 0.0
+        marker.color.a = 0.3
+        self.detect_outer_pub.publish(marker)
+
 
 
 if __name__ == '__main__':
