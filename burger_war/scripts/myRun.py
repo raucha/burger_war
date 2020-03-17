@@ -26,29 +26,36 @@ def get_goals(my_color):
         symbol = 1
         th = 0
 
+    rotation = 'CW'  # 回転方向を変える @en
+
+    if rotation == 'CW':
+        symbol_2 = -1
+    else:
+        symbol_2 = 1
+
     # 12x3 (x,y,yaw)
     TARGET = [
-        [symbol*-0.8, symbol*0.4, radians(-10+th)],
-        [symbol*-0.8, symbol*-0.4, radians(-10+th)],
-        [symbol*-0.5, symbol*0, radians(0+th)],
-        [symbol*-0.5, symbol*0, radians(-45+th)],
-        [symbol*0, symbol*-0.5, radians(180+th)],
-        [symbol*0, symbol*-0.5, radians(90+th)],
-        [symbol*0., symbol*-0.5, radians(0+th)],
-        [symbol*0, symbol*-0.5, radians(-45+th)],
-        [symbol*0.4, symbol*-1.0, radians(45+th)],
-        [symbol*1, symbol*-0.5, radians(180+th)],
-        [symbol*1, symbol*-0.5, radians(45+th)],
-        [symbol*1.46, symbol*0, radians(45+th)],  # top
-        [symbol*1.46, symbol*0, radians(135+th)],
-        [symbol*1, symbol*0.5, radians(180+th)],
-        [symbol*1, symbol*0.5, radians(135+th)],
-        [symbol*0.4, symbol*1.0, radians(135+th)],
-        [symbol*0.4, symbol*1.0, radians(-135+th)],
-        [symbol*0, symbol*0.5, radians(0+th)],
-        [symbol*0, symbol*0.5, radians(-90+th)],
-        [symbol*0, symbol*0.5, radians(180+th)],
-        [symbol*0, symbol*0.5, radians(135+th)],
+        [symbol*-0.8, symbol*symbol_2*0.4, radians(symbol_2*(-10+th))],
+        [symbol*-0.8, symbol*symbol_2*-0.4, radians(symbol_2*(-10+th))],
+        [symbol*-0.5, symbol*symbol_2*0, radians(symbol_2*(0+th))],
+        [symbol*-0.5, symbol*symbol_2*0, radians(symbol_2*(-45+th))],
+        [symbol*0, symbol*symbol_2*-0.5, radians(symbol_2*(180+th))],
+        [symbol*0, symbol*symbol_2*-0.5, radians(symbol_2*(90+th))],
+        [symbol*0., symbol*symbol_2*-0.5, radians(symbol_2*(0+th))],
+        [symbol*0, symbol*symbol_2*-0.5, radians(symbol_2*(-45+th))],
+        [symbol*0.4, symbol*symbol_2*-1.0, radians(symbol_2*(45+th))],
+        [symbol*0.9, symbol*symbol_2*-0.6, radians(symbol_2*(180+th))],
+        [symbol*0.9, symbol*symbol_2*-0.6, radians(symbol_2*(45+th))],
+        [symbol*1.46, symbol*symbol_2*0, radians(symbol_2*(45+th))],  # top
+        [symbol*1.46, symbol*symbol_2*0, radians(symbol_2*(135+th))], # top
+        [symbol*0.9, symbol*symbol_2*0.6, radians(symbol_2*(180+th))],
+        [symbol*0.9, symbol*symbol_2*0.6, radians(symbol_2*(135+th))],
+        [symbol*0.4, symbol*symbol_2*1.0, radians(symbol_2*(135+th))],
+        [symbol*0.4, symbol*symbol_2*1.0, radians(symbol_2*(-135+th))],
+        [symbol*0, symbol*symbol_2*0.5, radians(symbol_2*(0+th))],
+        [symbol*0, symbol*symbol_2*0.5, radians(symbol_2*(-90+th))],
+        [symbol*0, symbol*symbol_2*0.5, radians(symbol_2*(180+th))],
+        [symbol*0, symbol*symbol_2*0.5, radians(symbol_2*(135+th))],
     ]
     return TARGET
 
