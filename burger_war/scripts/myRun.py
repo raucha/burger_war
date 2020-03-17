@@ -36,13 +36,13 @@ def get_goals(my_color):
 
     # 12x3 (x,y,yaw)
     TARGET = [
-        [symbol*-0.8, symbol*symbol_2*0.4, radians(symbol_2*(-10+th))],
+        [symbol*-0.8, symbol*symbol_2*0.4, radians(symbol_2*(10+th))],
         [symbol*-0.8, symbol*symbol_2*-0.4, radians(symbol_2*(-10+th))],
         [symbol*-0.5, symbol*symbol_2*0, radians(symbol_2*(0+th))],
         [symbol*-0.5, symbol*symbol_2*0, radians(symbol_2*(-45+th))],
         [symbol*0, symbol*symbol_2*-0.5, radians(symbol_2*(180+th))],
         [symbol*0, symbol*symbol_2*-0.5, radians(symbol_2*(90+th))],
-        [symbol*0., symbol*symbol_2*-0.5, radians(symbol_2*(0+th))],
+        [symbol*0, symbol*symbol_2*-0.5, radians(symbol_2*(0+th))],
         [symbol*0, symbol*symbol_2*-0.5, radians(symbol_2*(-45+th))],
         [symbol*0.4, symbol*symbol_2*-1.0, radians(symbol_2*(45+th))],
         [symbol*0.9, symbol*symbol_2*-0.6, radians(symbol_2*(180+th))],
@@ -56,7 +56,8 @@ def get_goals(my_color):
         [symbol*0, symbol*symbol_2*0.5, radians(symbol_2*(0+th))],
         [symbol*0, symbol*symbol_2*0.5, radians(symbol_2*(-90+th))],
         [symbol*0, symbol*symbol_2*0.5, radians(symbol_2*(180+th))],
-        [symbol*0, symbol*symbol_2*0.5, radians(symbol_2*(135+th))],
+        [symbol*0, symbol*symbol_2*0.5, radians(symbol_2*(-135+th))],
+        [symbol*-0.5, symbol*symbol_2*0, radians(symbol_2*(0+th))],
     ]
     return TARGET
 
@@ -114,7 +115,7 @@ class RandomBot():
         def done_cb(status, result):
             if status is not GoalStatus.PREEMPTED:
                 self.goalcounter += 1
-                self.goalcounter %= 20
+                self.goalcounter %= len(self.goals)
             rospy.loginfo("done_cb. status:{} result:{}".format(num2mvstate(status), result))
 
         self.client.send_goal(goal, done_cb=done_cb, active_cb=active_cb, feedback_cb=feedback_cb)
