@@ -19,7 +19,7 @@ from visualization_msgs.msg import Marker
 #import cv2
 
 
-def get_goals(my_color):
+def get_goals(my_color, rotation="CW"):
     if my_color == 'b':
         symbol = -1
         th = 180
@@ -27,7 +27,7 @@ def get_goals(my_color):
         symbol = 1
         th = 0
 
-    rotation = 'CW'  # 回転方向を変える @en
+    # rotation = 'CW'  # 回転方向を変える @en
 
     if rotation == 'CW':
         symbol_2 = -1
@@ -38,15 +38,15 @@ def get_goals(my_color):
     TARGET = [
         [symbol*-0.8, symbol*symbol_2*0.4, radians(symbol_2*(10+th))],
         [symbol*-0.8, symbol*symbol_2*-0.4, radians(symbol_2*(-10+th))],
-        [symbol*-0.5, symbol*symbol_2*0, radians(symbol_2*(0+th))],
+        [symbol*-0.5, symbol*symbol_2*0, radians(symbol_2*(0+th))],         # スタート地点正面のポイントを獲得
         [symbol*-0.5, symbol*symbol_2*0, radians(symbol_2*(-45+th))],
         [symbol*0, symbol*symbol_2*-0.5, radians(symbol_2*(180+th))],
         [symbol*0, symbol*symbol_2*-0.5, radians(symbol_2*(90+th))],
         [symbol*0, symbol*symbol_2*-0.5, radians(symbol_2*(0+th))],
         [symbol*0, symbol*symbol_2*-0.5, radians(symbol_2*(-45+th))],
         [symbol*0.4, symbol*symbol_2*-1.0, radians(symbol_2*(45+th))],
-        [symbol*0.9, symbol*symbol_2*-0.6, radians(symbol_2*(180+th))],
-        [symbol*0.9, symbol*symbol_2*-0.6, radians(symbol_2*(45+th))],
+        [symbol*0.9, symbol*symbol_2*-0.55, radians(symbol_2*(180+th))],
+        [symbol*0.9, symbol*symbol_2*-0.55, radians(symbol_2*(45+th))],
         [symbol*1.46, symbol*symbol_2*0, radians(symbol_2*(45+th))],  # top
         [symbol*1.46, symbol*symbol_2*0, radians(symbol_2*(135+th))], # top
         [symbol*0.9, symbol*symbol_2*0.6, radians(symbol_2*(180+th))],
@@ -81,6 +81,9 @@ class RandomBot():
         self.goalcounter = 0
         self.goalcounter_prev = -1
         self.goals = get_goals(self.my_color)
+        self.enemy_y = 0
+        self.route_direction = None
+        self.is_second_lap = False
 
     def setGoal(self, x, y, yaw):
         # RESPECT @seigot
@@ -115,7 +118,13 @@ class RandomBot():
         def done_cb(status, result):
             if status is not GoalStatus.PREEMPTED:
                 self.goalcounter += 1
+                if self.goalcounter == len(self.goals):
+                    self.is_second_lap = True
                 self.goalcounter %= len(self.goals)
+
+                # 2周目の場合は、最初の方のマーカーをとばす
+                if self.is_second_lap and (self.goalcounter in [0, 1, 2]):
+                    self.goalcounter = 3
             rospy.loginfo("done_cb. status:{} result:{}".format(num2mvstate(status), result))
 
         self.client.send_goal(goal, done_cb=done_cb, active_cb=active_cb, feedback_cb=feedback_cb)
@@ -136,19 +145,43 @@ class RandomBot():
             r.sleep()
             # rospy.loginfo("is_patrol_mode:{}".format(is_patrol_mode) )
 
+            # ルートの方向決定のループ
+            if None == self.route_direction:
+                # 敵の移動方向を検出
+                is_enemy_detected, x, y = self.getEnemyPos("map")
+                if is_enemy_detected:
+                    self.enemy_y += 1 if y > 0 else -1
+                # スタート正面のポイントをとった時点で、移動方向を決定
+                if 3 == self.goalcounter and 2 == self.goalcounter_prev:
+                    if self.my_color == "r" and 0 >= self.enemy_y:
+                        self.route_direction = "CW"
+                    elif self.my_color == "r" and self.enemy_y > 0:
+                        self.route_direction = "CCW"
+                    elif self.my_color == "b" and 0 >= self.enemy_y:
+                        self.route_direction = "CCW"
+                    elif self.my_color == "b" and self.enemy_y > 0:
+                        self.route_direction = "CW"
+                    else:
+                        assert()
+                    self.goals = get_goals(self.my_color, self.route_direction)
+
+            # 敵の検出
             is_enemy_detected, enemy_dist, enemy_rad = self.getEnemyDistRad()
             # rospy.loginfo("is_enemy_detected:{} enemy_dist{} enemy_rad:{}".format(is_enemy_detected, enemy_dist, enemy_rad))
+
+            # 敵追跡モードと巡回モードの分岐条件判定
             is_patrol_mode = True
-            detect_inner_th = 0.6
-            detect_outer_th = 0.7
+            detect_inner_th = 0.5
+            detect_outer_th = 0.6
+            self.pubDetectRange(detect_inner_th, detect_outer_th)
             if not is_enemy_detected:
                 is_patrol_mode = True
             elif is_patrol_mode and  detect_inner_th > enemy_dist:
                 is_patrol_mode = False
             elif not is_patrol_mode and detect_outer_th < enemy_dist:
                 is_patrol_mode = True
-            self.pubDetectRange(detect_inner_th, detect_outer_th)
 
+            # 移動実施
             if is_patrol_mode and (not is_patrol_mode_prev or (self.goalcounter is not self.goalcounter_prev)):
                 # 新たに巡回モードに切り替わった瞬間及びゴール座標が変わった時
                 # goalcounterのゴール座標をセット
@@ -162,10 +195,17 @@ class RandomBot():
                 # 敵の方向を向くモード
                 self.client.cancel_all_goals()
                 twist = Twist()
-                twist.angular.z = radians(2.0*degrees(enemy_rad))
+                twist.angular.z = radians(3.0*degrees(enemy_rad))
                 self.vel_pub.publish(twist)
             is_patrol_mode_prev = is_patrol_mode
 
+    def getEnemyPos(self, frame):
+        try:
+            trans_stamped = self.tfBuffer.lookup_transform(frame, 'enemy_closest', rospy.Time())
+            trans = trans_stamped.transform
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+            return False, 0, 0
+        return True, trans.translation.x, trans.translation.y
 
     def getEnemyDistRad(self):
         try:
