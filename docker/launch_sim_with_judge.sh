@@ -30,6 +30,6 @@ docker run -it \
 -e LOCAL_GROUP_ID=`id -g $USER` \
 -e LOCAL_GROUP_NAME=`id -gn $USER` \
 --name burger_war_container \
- ros_kinetic_gpu bash -i -c 'cd $ROS_WS/src/burger_war; bash scripts/sim_with_judge.sh'
+ ros_kinetic_gpu bash -i -c 'cd $ROS_WS/src/burger_war; bash scripts/sim_with_judge.sh -s b'
 
 xhost -local:root

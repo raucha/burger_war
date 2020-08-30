@@ -13,6 +13,6 @@ docker exec -it \
 -e LOCAL_USER_ID=`id -u $USER` \
 -e LOCAL_GROUP_ID=`id -g $USER` \
 -e LOCAL_GROUP_NAME=`id -gn $USER` \
- burger_war_container bash -i -c 'cd $ROS_WS/src/burger_war; bash scripts/start.sh'
+ burger_war_container bash -i -c 'cd $ROS_WS/src/burger_war; bash scripts/start.sh -l 1 -s b'
 
 xhost -local:root
